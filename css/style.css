@@ -72,7 +72,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 24px; }
   margin-bottom: 20px;
 }
 
-.cartoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px; }
+.cartoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin-bottom: 20px; }
 .cartao { background: var(--painel); border: 1px solid var(--borda); border-radius: var(--raio); padding: 18px; }
 .cartao .rotulo { color: var(--texto-fraco); font-size: 13px; }
 .cartao .valor { font-size: 26px; font-weight: 700; margin-top: 6px; }
@@ -162,4 +162,86 @@ button.pequeno { padding: 4px 10px; font-size: 13px; }
   main { padding: 12px; }
   .topo { flex-direction: column; align-items: flex-start; gap: 0; }
   .menu a { padding: 10px 8px; }
+}
+
+/* ===== Lucro e prejuízo ===== */
+.lucro { color: var(--ok); }
+.prejuizo { color: var(--erro); }
+.destaque { color: var(--destaque); }
+a { color: var(--destaque); }
+a.botao { text-decoration: none; display: inline-block; }
+
+/* ===== Layouts ===== */
+.duas-colunas { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.duas-colunas > .caixa { margin-bottom: 20px; }
+.largura-grafico { grid-template-columns: 2fr 1fr; }
+.lado { display: flex; align-items: center; gap: 8px; }
+.lado > input, .lado > select { width: auto; flex: 1; }
+.compacto input, .compacto select { padding: 6px 8px; max-width: 150px; }
+.espaco { flex: 1; }
+.linha-acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; }
+
+/* ===== Formulários em grade ===== */
+.form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+.form label { display: flex; flex-direction: column; gap: 6px; color: var(--texto-fraco); font-size: 13px; }
+.form label.inteiro { grid-column: 1 / -1; }
+.form label[hidden] { display: none; }
+.grupo.largo { display: flex; width: 100%; }
+.grupo.largo button { flex: 1; padding: 10px; }
+
+/* ===== Chave-valor (painéis de prévia) ===== */
+.kv { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--borda); }
+.kv:last-of-type { border-bottom: none; }
+.caixa h3 { font-size: 15px; margin: 18px 0 10px; }
+
+/* ===== Notas coloridas ===== */
+.nota-ok, .nota-alerta, .nota-erro { border-radius: 10px; padding: 10px 14px; margin: 10px 0; }
+.nota-ok { background: #0F2A1E; border: 1px solid #1E5A3A; color: #BFF3D8; }
+.nota-alerta { background: #2E2210; border: 1px solid #6B4E1A; color: #F5D9A6; }
+.nota-erro { background: #331616; border: 1px solid #6B2626; color: #FBD0D0; }
+.veredito { font-weight: 700; font-size: 16px; }
+
+/* ===== Avisos do painel ===== */
+.avisos { list-style: none; margin: 0; padding: 0; }
+.avisos li { padding: 9px 12px 9px 14px; border-left: 3px solid; margin-bottom: 6px; background: var(--painel-2); border-radius: 0 8px 8px 0; }
+.aviso-ok { border-color: var(--ok) !important; }
+.aviso-alerta { border-color: var(--sobe) !important; }
+.aviso-erro { border-color: var(--erro) !important; }
+
+/* ===== Ofertas ===== */
+.oferta-topo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.oferta-topo h2 { margin: 0; }
+.numeros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 14px; }
+.numeros .rotulo { color: var(--texto-fraco); font-size: 13px; }
+.valor-m { font-size: 20px; font-weight: 700; margin-top: 4px; }
+.sub { color: var(--texto-fraco); font-size: 12px; font-weight: 400; }
+.detalhes { margin-top: 16px; padding-top: 6px; border-top: 1px solid var(--borda); }
+.st-aberta { background: #3A2A0B; color: var(--destaque); }
+.st-concluida { background: #0F2A1E; color: var(--ok); margin-left: 0; }
+.st-cancelada { background: #2A2D35; color: var(--texto-fraco); }
+.mini-oferta { margin-bottom: 12px; }
+.composicao { margin-bottom: 10px; }
+
+/* ===== Barra de progresso ===== */
+.barra { height: 8px; background: var(--painel-2); border-radius: 999px; overflow: hidden; margin-top: 6px; }
+.barra > div { height: 100%; background: var(--destaque); border-radius: 999px; }
+
+/* ===== Gráficos ===== */
+.grafico { width: 100%; height: auto; display: block; }
+.grafico text { fill: var(--texto-fraco); font-size: 16px; font-family: inherit; }
+.grafico .grade { stroke: var(--borda); stroke-width: 1; }
+.grafico .traco { fill: none; stroke: var(--destaque); stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+.grafico .area { fill: rgba(242, 184, 75, 0.10); }
+.grafico .ponto { fill: var(--destaque); }
+.grafico rect.pos { fill: var(--ok); }
+.grafico rect.neg { fill: var(--erro); }
+
+@media (max-width: 900px) {
+  .duas-colunas, .largura-grafico { grid-template-columns: 1fr; }
+  .numeros { grid-template-columns: 1fr 1fr; }
+  .form { grid-template-columns: 1fr; }
+  .grupo { flex-wrap: wrap; }
+  .cabecalho h1 { width: 100%; }
+  table { font-size: 13px; }
+  .caixa { overflow-x: auto; }
 }

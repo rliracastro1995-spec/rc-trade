@@ -35,7 +35,7 @@ const Formato = {
   curto(n) {
     if (n === null || n === undefined || isNaN(n)) return "—";
     if (Math.abs(n) >= 1000000) {
-      let t = Formato.numero(n / 1000000, 2);
+      let t = Formato.numero(n / 1000000, 3);
       if (t.includes(",")) t = t.replace(/0+$/, "").replace(/,$/, "");
       return t + "kk";
     }
@@ -83,4 +83,9 @@ const Formato = {
   },
 
   nomePeriodo: { manha: "Manhã", tarde: "Tarde", noite: "Noite" },
+
+  // Protege textos digitados (notas, nomes) antes de pôr no HTML
+  esc(t) {
+    return String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  },
 };

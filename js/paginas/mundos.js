@@ -3,7 +3,19 @@
 const PaginaMundos = {
   render(main) {
     main.innerHTML = `
-      <div class="cabecalho"><h1>Mundos e itens</h1></div>
+      <div class="cabecalho"><h1>Configurações</h1></div>
+
+      <div class="caixa">
+        <h2>Parâmetros</h2>
+        <div class="form">
+          <label>Taxa do market (%)<input id="cf-taxa" value="${Formato.numero(Dados.config().taxa * 100, 1)}" inputmode="decimal"></label>
+          <label>Valor de 1 RC em reais (R$)<input id="cf-reais" value="${Formato.numero(Dados.config().rcEmReais, 2)}" inputmode="decimal"></label>
+          <label>Reserva mínima em RC livre (%)<input id="cf-reserva" value="${Formato.numero(Dados.config().reservaMinima * 100)}" inputmode="decimal"></label>
+          <label>Lucro mínimo para recomprar (%)<input id="cf-lucro" value="${Formato.numero(Dados.config().lucroMinimo * 100, 1)}" inputmode="decimal"></label>
+          <label>Cotação velha depois de (horas)<input id="cf-horas" value="${Dados.config().horasCotacaoVelha}" inputmode="decimal"></label>
+        </div>
+        <div class="acoes"><button class="principal" id="cf-salvar">Salvar parâmetros</button></div>
+      </div>
 
       <div class="caixa">
         <h2>Mundos</h2>
@@ -43,6 +55,17 @@ const PaginaMundos = {
         App.avisar("Salvo.");
       })
     );
+
+    const num = (id) => Number(main.querySelector(id).value.replace(/\./g, "").replace(",", "."));
+    main.querySelector("#cf-salvar").addEventListener("click", () => {
+      const c = {
+        taxa: num("#cf-taxa") / 100, rcEmReais: num("#cf-reais"), reservaMinima: num("#cf-reserva") / 100,
+        lucroMinimo: num("#cf-lucro") / 100, horasCotacaoVelha: num("#cf-horas"),
+      };
+      if (Object.values(c).some((v) => Number.isNaN(v) || v < 0)) return App.avisar("Algum valor não é um número.", true);
+      Dados.salvarConfig(c);
+      App.avisar("Parâmetros salvos. A taxa nova vale para as próximas ofertas.");
+    });
 
     const adicionar = () => {
       const campo = main.querySelector("#novo-item");

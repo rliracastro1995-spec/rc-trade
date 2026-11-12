@@ -3,8 +3,12 @@
 const PAGINAS = {
   painel: PaginaPainel,
   cotacoes: PaginaCotacoes,
+  ofertas: PaginaOfertas,
+  avaliar: PaginaAvaliar,
+  carteira: PaginaCarteira,
+  fechamento: PaginaFechamento,
   historico: PaginaHistorico,
-  mundos: PaginaMundos,
+  config: PaginaMundos,
   backup: PaginaBackup,
 };
 
@@ -16,7 +20,15 @@ const App = {
     document.querySelectorAll("#menu a").forEach((a) =>
       a.classList.toggle("ativo", a.getAttribute("href") === "#" + nome)
     );
-    pagina.render(document.getElementById("conteudo"));
+    const main = document.getElementById("conteudo");
+    try {
+      pagina.render(main);
+    } catch (erro) {
+      console.error(erro);
+      main.innerHTML = `<div class="nota-erro">Algo deu errado nesta tela: ${Formato.esc(erro.message)}.
+        Seus dados continuam salvos. Faça um backup e me mande o erro.</div>`;
+    }
+    window.scrollTo(0, 0);
   },
 
   // Mensagem rápida no canto da tela (sem alert)

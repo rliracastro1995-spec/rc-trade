@@ -12,7 +12,7 @@ const PaginaBackup = {
 
       <div class="caixa">
         <h2>Baixar backup</h2>
-        <p class="fraco">${Formato.numero(Dados.cotacoes().length)} cotações, ${Dados.mundos().length} mundos, ${Dados.itens().length} itens.</p>
+        <p class="fraco">${Formato.numero(Dados.cotacoes().length)} cotações, ${Dados.ofertas().length} ofertas, ${Dados.movimentos().length + Dados.lancamentosItens().length} lançamentos, ${Dados.fechamentos().length} dias fechados.</p>
         <button class="principal" id="baixar">Baixar arquivo .json</button>
       </div>
 

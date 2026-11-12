@@ -45,6 +45,13 @@ const Calculos = {
     return valores.reduce((s, v) => s + v, 0) / valores.length;
   },
 
+  // Última cotação de venda (melhor oferta de venda = preço para comprar RC) até o fim de uma data.
+  // Sem data = a mais recente que existe. Devolve null se nunca foi cotado.
+  cotacaoAte(mundoId, itemId, data, campo = "venda") {
+    const s = Calculos.serie(mundoId, itemId).filter((c) => c[campo] !== null && (!data || c.data <= data));
+    return s.length ? s[s.length - 1][campo] : null;
+  },
+
   // Variação: 74000 contra 77000 → -0,039
   variacao(atual, anterior) {
     if (atual === null || anterior === null || anterior === undefined || !anterior) return null;
@@ -55,5 +62,34 @@ const Calculos = {
   spread(venda, compra) {
     if (venda === null || compra === null || !venda) return null;
     return (venda - compra) / venda;
+  },
+};
+
+// ----- Datas -----
+const Datas = {
+  // "2026-11-11" + 3 → "2026-11-14"
+  somar(iso, dias) {
+    const d = new Date(iso + "T12:00");
+    d.setDate(d.getDate() + dias);
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  },
+  // Segunda-feira da semana da data
+  inicioSemana(iso) {
+    const d = new Date(iso + "T12:00");
+    const diaSemana = (d.getDay() + 6) % 7; // segunda = 0
+    return Datas.somar(iso, -diaSemana);
+  },
+  mes(iso) {
+    return iso.slice(0, 7);
+  },
+  nomeMes(chave) {
+    const nomes = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+    const [a, m] = chave.split("-");
+    return nomes[Number(m) - 1] + "/" + a.slice(2);
+  },
+  ultimoDiaMes(chave) {
+    const [a, m] = chave.split("-").map(Number);
+    const d = new Date(a, m, 0);
+    return chave + "-" + String(d.getDate()).padStart(2, "0");
   },
 };
