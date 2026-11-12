@@ -1,0 +1,8 @@
+# backups com seus dados reais — não vão para o GitHub
+rctrade-backup-*.json
+
+# sistema e editor
+.DS_Store
+Thumbs.db
+.vscode/
+node_modules/
