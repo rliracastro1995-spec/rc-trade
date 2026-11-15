@@ -1,0 +1,86 @@
+/* =========================================================
+   TOKENS — todas as cores e medidas do app ficam aqui.
+   Os outros arquivos CSS só usam var(--nome).
+   ========================================================= */
+
+/* ---------- Valores que não mudam com o tema ---------- */
+:root {
+  /* Cores das moedas */
+  --cor-rc: #d9264f;   /* Rubini Coin: vermelho-rubi */
+  --cor-kk: #0e9be0;   /* Gold (kk): azul */
+  --cor-item: #8b5cf6; /* Itens: roxo */
+
+  /* Fonte */
+  --fonte: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Tamanhos de texto */
+  --texto-pequeno: 12px;
+  --texto-normal: 14px;
+  --texto-subtitulo: 16px;
+  --texto-titulo: 22px;
+  --texto-numero-grande: 28px;
+
+  /* Espaçamentos (sempre múltiplos de 4) */
+  --espaco-1: 4px;
+  --espaco-2: 8px;
+  --espaco-3: 12px;
+  --espaco-4: 16px;
+  --espaco-5: 20px;
+  --espaco-6: 24px;
+  --espaco-8: 32px;
+
+  /* Cantos arredondados */
+  --raio-pequeno: 6px;
+  --raio: 10px;
+  --raio-grande: 14px;
+
+  /* Medidas do layout */
+  --largura-menu: 240px;
+}
+
+/* ---------- Tema CLARO (padrão) ---------- */
+:root,
+[data-tema="claro"] {
+  color-scheme: light;
+
+  --cor-fundo: #eeede8;          /* fundo da página */
+  --cor-menu: #e6e4de;           /* fundo do menu lateral */
+  --cor-superficie: #faf9f6;     /* cartões e tabelas */
+  --cor-elevada: #f1f0eb;        /* itens em destaque, hover */
+  --cor-borda: #d6d3ca;
+
+  --cor-texto: #1f2328;
+  --cor-texto-fraco: #5c636d;    /* legendas e textos de apoio */
+
+  --cor-primaria: #1f5faa;       /* botões principais e item ativo */
+  --cor-sobre-primaria: #ffffff; /* texto em cima da cor primária */
+
+  --cor-lucro: #0f7a5f;
+  --cor-prejuizo: #b23a1e;
+  --cor-alerta: #9a6a00;
+
+  --sombra-cartao: 0 1px 2px rgba(31, 35, 40, 0.06);
+}
+
+/* ---------- Tema ESCURO ---------- */
+[data-tema="escuro"] {
+  color-scheme: dark;
+
+  --cor-fundo: #0b0e11;
+  --cor-menu: #101317;
+  --cor-superficie: #181c21;
+  --cor-elevada: #22272e;
+  --cor-borda: #2b3139;
+
+  --cor-texto: #eaecef;
+  --cor-texto-fraco: #929aa5;
+
+  --cor-primaria: #3d7bff;
+  --cor-sobre-primaria: #ffffff;
+
+  --cor-lucro: #0ecb81;
+  --cor-prejuizo: #f6465d;
+  --cor-alerta: #f0b90b;
+
+  --sombra-cartao: none;
+}

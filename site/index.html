@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-tema="claro">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RC Trade</title>
+
+    <!-- Fonte Inter (a mesma das telas aprovadas) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
+
+    <!-- Estilos: primeiro as cores (tokens), depois o resto -->
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+  </head>
+
+  <body>
+    <div class="app">
+      <!-- MENU LATERAL -->
+      <aside class="menu-lateral">
+        <a class="marca" href="#painel">
+          <span class="marca-logo">RC</span>
+          <span class="marca-nome">RC Trade</span>
+        </a>
+
+        <nav aria-label="Menu principal">
+          <p class="menu-grupo">Operação</p>
+          <ul class="menu-lista">
+            <li><a href="#painel" data-pagina="painel">Painel</a></li>
+            <li><a href="#cotacoes" data-pagina="cotacoes">Cotações</a></li>
+            <li><a href="#avaliar" data-pagina="avaliar">Avaliar</a></li>
+            <li><a href="#ofertas" data-pagina="ofertas">Ofertas</a></li>
+            <li><a href="#itens" data-pagina="itens">Itens</a></li>
+          </ul>
+
+          <p class="menu-grupo">Financeiro</p>
+          <ul class="menu-lista">
+            <li><a href="#carteira" data-pagina="carteira">Carteira</a></li>
+            <li><a href="#fechamento" data-pagina="fechamento">Fechamento e histórico</a></li>
+          </ul>
+
+          <p class="menu-grupo">Sistema</p>
+          <ul class="menu-lista">
+            <li><a href="#configuracoes" data-pagina="configuracoes">Configurações e backup</a></li>
+          </ul>
+        </nav>
+
+        <!-- Troca de tema -->
+        <div class="seletor-tema" role="group" aria-label="Tema">
+          <button type="button" data-escolha-tema="claro" aria-pressed="true">Claro</button>
+          <button type="button" data-escolha-tema="escuro" aria-pressed="false">Escuro</button>
+        </div>
+      </aside>
+
+      <!-- ÁREA DAS TELAS: o JavaScript desenha cada tela aqui dentro -->
+      <main id="conteudo" class="conteudo" tabindex="-1">
+        <h1>Painel</h1>
+        <p>Em construção.</p>
+      </main>
+    </div>
+  </body>
+</html>
