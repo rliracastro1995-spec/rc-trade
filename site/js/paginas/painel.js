@@ -11,7 +11,12 @@ import {
   formatarReais,
   formatarData,
 } from "../nucleo/formato.js";
-import { obterEstado, importarDoLegado, lerDadosLegado } from "../dados/armazenamento.js";
+import {
+  obterEstado,
+  importarDoLegado,
+  importarDeArquivo,
+  temLancamentosNoLegado,
+} from "../dados/armazenamento.js";
 import { gerarLinhaDoTempo } from "../dados/adaptador-eventos.js";
 import { calcularCarteira, avaliarCarteira } from "../motor/carteira.js";
 import { ultimaCotacaoPorMundo, ultimoPrecoPorItem } from "../motor/cotacoes.js";
@@ -121,43 +126,67 @@ function acoesRapidas() {
 // ---------------------------------------------------------------
 
 function telaVazia(conteudo) {
-  const temLegado = Boolean(lerDadosLegado());
+  // Só vale oferecer o app antigo se ele tiver lançamento de verdade:
+  // abrir o app antigo uma vez já cria um registro vazio.
+  const temLegado = temLancamentosNoLegado();
   const aviso = el("p", { class: "vazio-aviso" });
 
-  // Traz os dados do app antigo e conta na tela o que aconteceu.
-  // Sem isso, um erro ou um backup vazio parecem "o botão não funciona".
-  function importar() {
+  // Conta na tela o que aconteceu. Sem isso, um erro ou um backup vazio
+  // parecem "o botão não funciona".
+  function trazer(buscarResumo) {
     let resumo;
     try {
-      resumo = importarDoLegado();
+      resumo = buscarResumo();
     } catch (erro) {
-      aviso.textContent = `Não consegui importar: ${erro.message}`;
+      aviso.textContent = erro.message;
       return;
     }
-
-    if (!resumo) {
-      aviso.textContent = "Não encontrei os dados do app antigo neste navegador.";
+    if (!resumo || Object.values(resumo).every((quantos) => quantos === 0)) {
+      aviso.textContent = "Esse backup não tem nenhum lançamento para trazer.";
       return;
     }
-    if (Object.values(resumo).every((quantos) => quantos === 0)) {
-      aviso.textContent = "O app antigo não tem nenhum lançamento para trazer.";
-      return;
-    }
-
     desenharPainel(conteudo, { importado: resumo });
   }
+
+  const escolherArquivo = el("input", {
+    type: "file",
+    accept: ".json,application/json",
+    class: "escondido",
+    onchange: (evento) => {
+      const arquivo = evento.target.files?.[0];
+      if (!arquivo) return;
+      const leitor = new FileReader();
+      leitor.onload = () => trazer(() => importarDeArquivo(String(leitor.result)));
+      leitor.onerror = () => {
+        aviso.textContent = "Não consegui abrir esse arquivo.";
+      };
+      leitor.readAsText(arquivo);
+    },
+  });
 
   return el("div", { class: "vazio" }, [
     el("h2", { texto: "Nenhum lançamento ainda" }),
     el("p", {
       texto: temLegado
-        ? "Encontrei os dados do app antigo neste navegador. Posso trazer tudo para cá."
-        : "Comece lançando a sua cotação do dia e o RC que você tem hoje.",
+        ? "Encontrei lançamentos do app antigo neste navegador. Posso trazer tudo para cá."
+        : "Se você já usava o app antigo, baixe o backup dele (tela Backup) e traga o arquivo aqui.",
     }),
-    temLegado
-      ? el("button", { class: "botao botao-primario", type: "button", onclick: importar },
-          "Importar do app antigo")
-      : el("a", { class: "botao botao-primario", href: "#cotacoes", texto: "Lançar cotação" }),
+
+    el("div", { class: "vazio-botoes" }, [
+      temLegado &&
+        el("button", { class: "botao botao-primario", type: "button",
+          onclick: () => trazer(importarDoLegado) }, "Importar do app antigo"),
+
+      el("button", {
+        class: `botao ${temLegado ? "" : "botao-primario"}`.trim(),
+        type: "button",
+        onclick: () => escolherArquivo.click(),
+      }, "Trazer de um arquivo de backup"),
+
+      el("a", { class: "botao", href: "#cotacoes", texto: "Começar do zero" }),
+    ]),
+
+    escolherArquivo,
     aviso,
   ]);
 }

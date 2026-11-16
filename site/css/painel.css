@@ -237,3 +237,16 @@
   font-size: var(--texto-pequeno);
   color: var(--cor-lucro);
 }
+
+/* Botões da tela vazia */
+.vazio-botoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--espaco-2);
+}
+
+/* Campo de arquivo: o botão acima é quem abre a janela de escolher */
+.escondido {
+  display: none;
+}

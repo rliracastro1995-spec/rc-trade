@@ -86,3 +86,49 @@ export function importarDoLegado() {
   salvar();
   return resumo;
 }
+
+// Conta quantos lançamentos existem num estado (de qualquer formato).
+function quantosLancamentos(dados) {
+  const listas = [
+    dados?.cotacoes, dados?.ofertas, dados?.execucoes,
+    dados?.movimentos, dados?.lancamentosItens, dados?.precosItens,
+  ];
+  return listas.reduce((soma, lista) => soma + (lista?.length ?? 0), 0);
+}
+
+// Tem alguma coisa de verdade guardada pelo app antigo?
+// Só abrir o app antigo já cria um registro vazio, então existir não basta.
+export function temLancamentosNoLegado() {
+  return quantosLancamentos(lerDadosLegado()) > 0;
+}
+
+// Lê um arquivo de backup, do app NOVO ou do ANTIGO, e carrega.
+// Devolve o resumo do que entrou.
+export function importarDeArquivo(texto) {
+  let dados;
+  try {
+    dados = JSON.parse(texto);
+  } catch {
+    throw new Error("Esse arquivo não é um backup (não consegui ler o conteúdo).");
+  }
+
+  if (!dados || !Array.isArray(dados.mundos)) {
+    throw new Error("Esse arquivo não é um backup do RC Trade.");
+  }
+
+  // Backup do app novo: entra como está.
+  if (dados.versao === VERSAO) {
+    estado = dados;
+    salvar();
+    return { cotacoes: dados.cotacoes?.length ?? 0, ofertas: dados.ofertas?.length ?? 0,
+             execucoes: dados.execucoes?.length ?? 0, movimentos: dados.movimentos?.length ?? 0,
+             itens: dados.itens?.length ?? 0, lancamentosItens: dados.lancamentosItens?.length ?? 0,
+             precosItens: dados.precosItens?.length ?? 0 };
+  }
+
+  // Backup do app antigo: converte antes.
+  const { estado: convertido, resumo } = converterLegado(dados);
+  estado = convertido;
+  salvar();
+  return resumo;
+}
