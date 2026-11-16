@@ -4,7 +4,8 @@
 
 import { VERSAO, criarEstadoInicial } from "./estado-inicial.js";
 
-const CHAVE = "rctrade:v3"; // o app antigo usa "rctrade:v1" e não é tocado
+const CHAVE = "rctrade:v3";
+const CHAVE_LEGADO = "rctrade:v1"; // dados do app antigo: só lidos, nunca alterados
 
 let estado = null;
 
@@ -61,4 +62,14 @@ export function importar(texto) {
   }
   estado = dados;
   return salvar();
+}
+
+// Lê os dados do app antigo, sem alterar nada. Devolve null se não houver.
+export function lerDadosLegado() {
+  try {
+    const texto = localStorage.getItem(CHAVE_LEGADO);
+    return texto ? JSON.parse(texto) : null;
+  } catch {
+    return null;
+  }
 }
