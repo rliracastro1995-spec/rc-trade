@@ -50,6 +50,7 @@ function converterOferta(o) {
     status: o.status,
     canceladaData: o.canceladaData ?? null,
     canceladaTurno: o.canceladaPeriodo ?? null,
+    canceladaEm: o.canceladaEm ?? null,
     nota: o.nota ?? "",
     criadoEm: o.criadoEm,
   };
