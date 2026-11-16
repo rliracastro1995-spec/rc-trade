@@ -1,0 +1,8 @@
+<!-- RC (Rubini Coin): círculo rubi com "R" cortado -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="RC">
+  <circle cx="16" cy="16" r="16" fill="#D9264F" />
+  <path
+    d="M12.2 9.6V22.4M12.2 9.6H16.9A3.75 3.75 0 0 1 16.9 17.1H12.2M15.9 17.1L20.6 22.4M9.4 19.3H15.4"
+    fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+  />
+</svg>

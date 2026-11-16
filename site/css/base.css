@@ -199,3 +199,23 @@ body {
     padding: var(--espaco-5);
   }
 }
+
+/* ---------- 7. Ícones das moedas (assets/icones) ---------- */
+/* Uso: <img class="icone" src="assets/icones/rc.svg" alt="RC" /> */
+.icone {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  vertical-align: middle;
+}
+
+.icone-pequeno {
+  width: 16px;
+  height: 16px;
+}
+
+.icone-grande {
+  width: 32px;
+  height: 32px;
+}
