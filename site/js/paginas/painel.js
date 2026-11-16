@@ -120,8 +120,32 @@ function acoesRapidas() {
 // Tela vazia: ainda não há nada lançado
 // ---------------------------------------------------------------
 
-function telaVazia(aoImportar) {
+function telaVazia(conteudo) {
   const temLegado = Boolean(lerDadosLegado());
+  const aviso = el("p", { class: "vazio-aviso" });
+
+  // Traz os dados do app antigo e conta na tela o que aconteceu.
+  // Sem isso, um erro ou um backup vazio parecem "o botão não funciona".
+  function importar() {
+    let resumo;
+    try {
+      resumo = importarDoLegado();
+    } catch (erro) {
+      aviso.textContent = `Não consegui importar: ${erro.message}`;
+      return;
+    }
+
+    if (!resumo) {
+      aviso.textContent = "Não encontrei os dados do app antigo neste navegador.";
+      return;
+    }
+    if (Object.values(resumo).every((quantos) => quantos === 0)) {
+      aviso.textContent = "O app antigo não tem nenhum lançamento para trazer.";
+      return;
+    }
+
+    desenharPainel(conteudo, { importado: resumo });
+  }
 
   return el("div", { class: "vazio" }, [
     el("h2", { texto: "Nenhum lançamento ainda" }),
@@ -131,17 +155,38 @@ function telaVazia(aoImportar) {
         : "Comece lançando a sua cotação do dia e o RC que você tem hoje.",
     }),
     temLegado
-      ? el("button", { class: "botao botao-primario", type: "button", onclick: aoImportar },
+      ? el("button", { class: "botao botao-primario", type: "button", onclick: importar },
           "Importar do app antigo")
       : el("a", { class: "botao botao-primario", href: "#cotacoes", texto: "Lançar cotação" }),
+    aviso,
   ]);
+}
+
+// Depois de importar: diz em uma linha o que entrou.
+const NOME_DO_QUE_VEIO = {
+  cotacoes: "cotações",
+  precosItens: "preços de item",
+  ofertas: "ofertas",
+  execucoes: "execuções",
+  movimentos: "movimentos",
+  itens: "itens",
+  lancamentosItens: "lançamentos de item",
+  fechamentosLegado: "fechamentos antigos",
+};
+
+function faixaDoImportado(resumo) {
+  const partes = Object.entries(resumo)
+    .filter(([, quantos]) => quantos > 0)
+    .map(([chave, quantos]) => `${quantos} ${NOME_DO_QUE_VEIO[chave] ?? chave}`);
+
+  return el("p", { class: "faixa-ok", texto: `Importado do app antigo: ${partes.join(", ")}.` });
 }
 
 // ---------------------------------------------------------------
 // Montagem da tela
 // ---------------------------------------------------------------
 
-export function desenharPainel(conteudo) {
+export function desenharPainel(conteudo, { importado = null } = {}) {
   const estado = obterEstado();
 
   // ids viram nomes na tela: "auroria" → "Auroria", "tibia-coin" → "Tibia Coin"
@@ -161,17 +206,15 @@ export function desenharPainel(conteudo) {
     ([, m]) => m.goldTotal !== 0 || Object.values(m.itens ?? {}).some((i) => i.qtd > 0),
   );
 
-  const semNada =
-    carteira.rcLivre === 0 && carteira.rcBloqueado === 0 && mundos.length === 0;
+  // "Vazio" é não ter NADA guardado. Ter cotação lançada e saldo zero
+  // não é vazio: a tela precisa aparecer para você ver os números zerados.
+  const semNada = [
+    estado.movimentos, estado.ofertas, estado.execucoes,
+    estado.cotacoes, estado.precosItens, estado.lancamentosItens,
+  ].every((lista) => (lista ?? []).length === 0);
 
   if (semNada) {
-    trocarFilhos(conteudo, [
-      el("h1", { texto: "Painel" }),
-      telaVazia(() => {
-        const resumo = importarDoLegado();
-        if (resumo) desenharPainel(conteudo); // redesenha já com os dados
-      }),
-    ]);
+    trocarFilhos(conteudo, [el("h1", { texto: "Painel" }), telaVazia(conteudo)]);
     return;
   }
 
@@ -180,6 +223,8 @@ export function desenharPainel(conteudo) {
 
   trocarFilhos(conteudo, [
     el("h1", { texto: "Painel" }),
+
+    importado && faixaDoImportado(importado),
 
     el("section", { class: "indicadores" }, [
       indicador("Patrimônio", formatarRc(avaliacao.patrimonioRc), {

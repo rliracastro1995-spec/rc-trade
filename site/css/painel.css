@@ -215,3 +215,25 @@
   margin-bottom: var(--espaco-4);
   color: var(--cor-texto-fraco);
 }
+
+/* Aviso dentro da tela vazia (ex.: por que a importação não trouxe nada) */
+.vazio-aviso:empty {
+  display: none;
+}
+
+.vazio-aviso {
+  margin-top: var(--espaco-4);
+  margin-bottom: 0;
+  font-size: var(--texto-pequeno);
+  color: var(--cor-alerta);
+}
+
+/* Confirmação depois de importar do app antigo */
+.faixa-ok {
+  margin-bottom: var(--espaco-4);
+  padding: var(--espaco-2) var(--espaco-4);
+  border: 1px solid var(--cor-lucro);
+  border-radius: var(--raio-pequeno);
+  font-size: var(--texto-pequeno);
+  color: var(--cor-lucro);
+}
