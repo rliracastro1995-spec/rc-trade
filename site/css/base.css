@@ -1,0 +1,201 @@
+/* =========================================================
+   BASE — reset, layout (menu lateral + área das telas)
+   e elementos comuns. Só usa as variáveis do tokens.css.
+   ========================================================= */
+
+/* ---------- 1. Reset ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body,
+h1,
+h2,
+h3,
+p,
+ul {
+  margin: 0;
+}
+
+ul {
+  padding: 0;
+  list-style: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+/* ---------- 2. Página ---------- */
+body {
+  min-height: 100vh;
+  font-family: var(--fonte);
+  font-size: var(--texto-normal);
+  line-height: 1.5;
+  color: var(--cor-texto);
+  background: var(--cor-fundo);
+  font-variant-numeric: tabular-nums; /* números alinhados em colunas */
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Contorno visível ao navegar pelo teclado (Tab) */
+:focus-visible {
+  outline: 2px solid var(--cor-primaria);
+  outline-offset: 2px;
+}
+
+/* ---------- 3. Layout: menu à esquerda, telas à direita ---------- */
+.app {
+  display: grid;
+  grid-template-columns: var(--largura-menu) 1fr;
+  min-height: 100vh;
+}
+
+/* ---------- 4. Menu lateral ---------- */
+.menu-lateral {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-6);
+  height: 100vh;
+  padding: var(--espaco-5) var(--espaco-3);
+  overflow-y: auto;
+  background: var(--cor-menu);
+  border-right: 1px solid var(--cor-borda);
+}
+
+/* Marca (logo + nome) */
+.marca {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  padding: 0 var(--espaco-2);
+  color: var(--cor-texto);
+  text-decoration: none;
+}
+
+.marca-logo {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: var(--texto-pequeno);
+  font-weight: 700;
+  color: #ffffff;
+  background: var(--cor-rc);
+}
+
+.marca-nome {
+  font-size: var(--texto-subtitulo);
+  font-weight: 700;
+}
+
+/* Grupos do menu (Operação, Financeiro, Sistema) */
+.menu-grupo {
+  margin: var(--espaco-4) var(--espaco-2) var(--espaco-1);
+  font-size: var(--texto-pequeno);
+  font-weight: 600;
+  color: var(--cor-texto-fraco);
+}
+
+.menu-grupo:first-child {
+  margin-top: 0;
+}
+
+.menu-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Links do menu */
+.menu-lista a {
+  display: block;
+  padding: var(--espaco-2) var(--espaco-3);
+  border-radius: var(--raio-pequeno);
+  font-weight: 500;
+  color: var(--cor-texto-fraco);
+  text-decoration: none;
+}
+
+.menu-lista a:hover {
+  color: var(--cor-texto);
+  background: var(--cor-elevada);
+}
+
+/* Página aberta (o app.js marca com aria-current="page") */
+.menu-lista a[aria-current="page"] {
+  color: var(--cor-sobre-primaria);
+  background: var(--cor-primaria);
+}
+
+/* Seletor de tema (Claro | Escuro), fica no rodapé do menu */
+.seletor-tema {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--espaco-1);
+  margin-top: auto;
+  padding: var(--espaco-1);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  background: var(--cor-superficie);
+}
+
+.seletor-tema button {
+  padding: var(--espaco-1) var(--espaco-2);
+  border: 0;
+  border-radius: var(--raio-pequeno);
+  font-size: var(--texto-pequeno);
+  font-weight: 600;
+  color: var(--cor-texto-fraco);
+  background: transparent;
+  cursor: pointer;
+}
+
+.seletor-tema button[aria-pressed="true"] {
+  color: var(--cor-texto);
+  background: var(--cor-elevada);
+}
+
+/* ---------- 5. Área das telas ---------- */
+.conteudo {
+  min-width: 0; /* deixa tabelas largas rolarem em vez de estourar */
+  padding: var(--espaco-8);
+}
+
+.conteudo:focus {
+  outline: none; /* o foco aqui é só para leitores de tela */
+}
+
+.conteudo h1 {
+  margin-bottom: var(--espaco-2);
+  font-size: var(--texto-titulo);
+  font-weight: 700;
+}
+
+.conteudo > p {
+  color: var(--cor-texto-fraco);
+}
+
+/* ---------- 6. Telas pequenas (celular) ---------- */
+@media (max-width: 760px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .menu-lateral {
+    position: static;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--cor-borda);
+  }
+
+  .conteudo {
+    padding: var(--espaco-5);
+  }
+}
