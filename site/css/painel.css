@@ -1,0 +1,217 @@
+/* =========================================================
+   PAINEL — indicadores, cartões dos mundos e ações rápidas.
+   Só usa as variáveis do tokens.css, então funciona nos 2 temas.
+   ========================================================= */
+
+/* ---------- Indicadores do topo ---------- */
+.indicadores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--espaco-3);
+  margin-bottom: var(--espaco-6);
+}
+
+.indicador {
+  padding: var(--espaco-4);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra-cartao);
+}
+
+.indicador-rotulo {
+  font-size: var(--texto-pequeno);
+  font-weight: 600;
+  color: var(--cor-texto-fraco);
+}
+
+.indicador-valor {
+  margin-top: var(--espaco-1);
+  font-size: var(--texto-numero-grande);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.indicador-apoio {
+  margin-top: var(--espaco-1);
+  font-size: var(--texto-pequeno);
+  color: var(--cor-texto-fraco);
+}
+
+/* Lucro e prejuízo valem para indicadores e cartões */
+.lucro { color: var(--cor-lucro); }
+.prejuizo { color: var(--cor-prejuizo); }
+
+/* ---------- Seções ---------- */
+.mundos,
+.acoes-rapidas,
+.alertas {
+  margin-bottom: var(--espaco-6);
+}
+
+.mundos h2,
+.acoes-rapidas h2,
+.alertas h2 {
+  margin-bottom: var(--espaco-3);
+  font-size: var(--texto-subtitulo);
+  font-weight: 600;
+}
+
+.apoio {
+  color: var(--cor-texto-fraco);
+}
+
+/* ---------- Cartões dos mundos ---------- */
+.grade-mundos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--espaco-3);
+}
+
+.cartao-mundo {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra-cartao);
+}
+
+.cartao-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-2);
+  padding: var(--espaco-3) var(--espaco-4);
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.cartao-topo h3 {
+  font-size: var(--texto-normal);
+  font-weight: 600;
+}
+
+.etiqueta,
+.etiqueta-aviso {
+  padding: 2px var(--espaco-2);
+  border-radius: 999px;
+  font-size: var(--texto-pequeno);
+  white-space: nowrap;
+}
+
+.etiqueta {
+  color: var(--cor-texto-fraco);
+  background: var(--cor-elevada);
+}
+
+.etiqueta-aviso {
+  color: var(--cor-alerta);
+  background: transparent;
+  border: 1px solid var(--cor-alerta);
+}
+
+.cartao-corpo,
+.cartao-itens {
+  padding: var(--espaco-3) var(--espaco-4);
+}
+
+.cartao-itens {
+  border-top: 1px solid var(--cor-borda);
+}
+
+.cartao-itens-titulo {
+  margin-bottom: var(--espaco-1);
+  font-size: var(--texto-pequeno);
+  font-weight: 600;
+  color: var(--cor-texto-fraco);
+}
+
+.cartao-linha {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--espaco-3);
+  padding: 3px 0;
+}
+
+.cartao-rotulo {
+  font-size: var(--texto-pequeno);
+  color: var(--cor-texto-fraco);
+}
+
+.cartao-valor {
+  font-weight: 500;
+}
+
+/* ---------- Avisos do motor ---------- */
+.alertas {
+  padding: var(--espaco-4);
+  border: 1px solid var(--cor-alerta);
+  border-radius: var(--raio);
+  background: var(--cor-superficie);
+}
+
+.alertas h2 {
+  color: var(--cor-alerta);
+}
+
+.alertas li {
+  padding: 2px 0;
+  font-size: var(--texto-pequeno);
+  color: var(--cor-texto-fraco);
+}
+
+/* ---------- Botões ---------- */
+.botao {
+  display: inline-block;
+  padding: var(--espaco-2) var(--espaco-4);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  font-size: var(--texto-normal);
+  font-weight: 500;
+  color: var(--cor-texto);
+  text-decoration: none;
+  background: var(--cor-superficie);
+  cursor: pointer;
+}
+
+.botao:hover {
+  background: var(--cor-elevada);
+}
+
+.botao-primario {
+  border-color: transparent;
+  color: var(--cor-sobre-primaria);
+  background: var(--cor-primaria);
+}
+
+.botao-primario:hover {
+  filter: brightness(1.08);
+  background: var(--cor-primaria);
+}
+
+.acoes-botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+}
+
+/* ---------- Tela sem nada lançado ---------- */
+.vazio {
+  max-width: 460px;
+  padding: var(--espaco-8);
+  border: 1px dashed var(--cor-borda);
+  border-radius: var(--raio-grande);
+  text-align: center;
+  background: var(--cor-superficie);
+}
+
+.vazio h2 {
+  margin-bottom: var(--espaco-2);
+  font-size: var(--texto-subtitulo);
+}
+
+.vazio p {
+  margin-bottom: var(--espaco-4);
+  color: var(--cor-texto-fraco);
+}

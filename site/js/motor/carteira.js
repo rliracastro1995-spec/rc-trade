@@ -8,8 +8,8 @@
 //   • Não lê nem grava dados: recebe a lista de eventos e devolve a carteira.
 //   • Os eventos chegam em ordem cronológica e em unidades naturais
 //     (RC inteiro, gold inteiro). Quem monta e ordena é a camada de dados.
-//   • RC é um saldo só, da conta inteira. Gold é separado POR MUNDO e
-//     nunca é somado entre mundos.
+//   • RC é um saldo só, da conta inteira. Gold e itens são separados
+//     POR MUNDO e nunca são somados entre mundos.
 //   • Tudo é medido em RC. Cada mundo guarda o gold e quanto RC esse gold
 //     custou (custoRc). Recomprar RC com esse gold é o que gera lucro realizado.
 //
@@ -24,7 +24,15 @@
 //   oferta-executada  { ofertaId, qtd }
 //   oferta-cancelada  { ofertaId }
 //   oferta-expirada   { ofertaId }
+//   item-comprado     { mundoId, itemId, qtd, preco, teveTaxa, taxa? }
+//   item-vendido      { mundoId, itemId, qtd, preco, teveTaxa, taxa? }
+//   item-consumido    { mundoId, itemId, qtd }      usou o item em vez de vender
 // Todo evento tem "data" ("2026-11-15"). "lado" é "venda" ou "compra" de RC.
+//
+// ITENS: comprar e vender item mexe só com GOLD do mundo. O lucro da venda
+// é registrado em gold (é o que aconteceu de fato). Ele só vira "realizado
+// em RC" quando esse gold for usado para recomprar RC; até lá aparece no
+// "em aberto", porque o gold do mundo cresceu sem o custo crescer.
 
 import { taxaCriacao, liquidarGold, precoBase } from "./calculos.js";
 
@@ -42,9 +50,11 @@ function criarCarteiraVazia() {
     capitalRc: 0,   // tudo o que você colocou menos o que tirou
     realizadoRc: 0, // lucro que já aconteceu (recompras)
     ajustesRc: 0,   // diferenças de RC lançadas na conferência com o jogo
-    mundos: {},     // id → { gold, custoRc, taxasGold }
+    mundos: {},     // id → { gold, custoRc, taxasGold, itens }
     ofertas: {},    // id → situação de cada oferta
     realizados: [], // { data, mundoId, ofertaId, rc, recebidoRc, custoRc }
+    realizadosItens: [], // { data, mundoId, itemId, qtd, gold, recebidoGold, custoGold }
+    consumos: [],   // { data, mundoId, itemId, qtd, custoGold, custoRc }
     taxas: [],      // { data, mundoId, ofertaId, gold }
     alertas: [],    // avisos de lançamento que parece estar faltando
   };
@@ -52,8 +62,55 @@ function criarCarteiraVazia() {
 
 // Devolve o mundo, criando na primeira vez que ele aparece.
 function mundoDe(carteira, mundoId) {
-  carteira.mundos[mundoId] ??= { gold: 0, custoRc: 0, taxasGold: 0 };
+  carteira.mundos[mundoId] ??= { gold: 0, custoRc: 0, taxasGold: 0, itens: {} };
   return carteira.mundos[mundoId];
+}
+
+// Devolve o item dentro do mundo, criando na primeira vez que ele aparece.
+// custoGold = gold que você pagou pelo estoque atual (com taxa).
+// custoRc   = quanto RC esse gold tinha custado.
+// lucroGold = soma do lucro das vendas já feitas.
+function itemDe(mundo, itemId) {
+  mundo.itens[itemId] ??= { qtd: 0, custoGold: 0, custoRc: 0, lucroGold: 0 };
+  return mundo.itens[itemId];
+}
+
+// Taxa de um lançamento: se ele já traz a taxa cobrada, vale ela (é o fato).
+// Senão, calcula 5%. Aceitar oferta dos outros (teveTaxa = false) não paga.
+function taxaDoEvento(evento) {
+  if (!evento.teveTaxa) return 0;
+  return evento.taxa ?? taxaCriacao(evento.qtd, evento.preco);
+}
+
+function registrarTaxa(carteira, mundo, evento, taxa) {
+  if (taxa <= 0) return;
+  mundo.taxasGold += taxa;
+  carteira.taxas.push({
+    data: evento.data,
+    mundoId: evento.mundoId,
+    ofertaId: evento.ofertaId ?? null,
+    itemId: evento.itemId ?? null,
+    gold: taxa,
+  });
+}
+
+// Tira "qtd" do estoque do item e devolve o custo (gold e RC) dessa parte.
+function baixarEstoque(item, qtd) {
+  const fracao = item.qtd > 0 ? Math.min(1, qtd / item.qtd) : 0;
+  const custoGold = item.custoGold * fracao;
+  const custoRc = item.custoRc * fracao;
+
+  item.qtd -= Math.min(qtd, item.qtd);
+  item.custoGold -= custoGold;
+  item.custoRc -= custoRc;
+
+  if (item.qtd <= FOLGA) {
+    // estoque zerado: limpa restos de arredondamento
+    item.qtd = 0;
+    item.custoGold = 0;
+    item.custoRc = 0;
+  }
+  return { custoGold, custoRc };
 }
 
 // Quando parte do gold sai, leva junto a mesma proporção do custo.
@@ -152,24 +209,11 @@ const PROCESSADORES = {
 
     const mundo = mundoDe(carteira, evento.mundoId);
 
-    // Taxa: se o lançamento já traz a taxa cobrada, vale ela (é o fato).
-    // Senão, calcula. Aceitar oferta dos outros (teveTaxa = false) não paga.
-    const taxa = evento.teveTaxa
-      ? (evento.taxa ?? taxaCriacao(evento.qtd, evento.preco))
-      : 0;
-
     // A taxa tira gold do mundo mas não mexe no custo:
     // o gold que sobra fica mais caro.
+    const taxa = taxaDoEvento(evento);
     mundo.gold -= taxa;
-    mundo.taxasGold += taxa;
-    if (taxa > 0) {
-      carteira.taxas.push({
-        data: evento.data,
-        mundoId: evento.mundoId,
-        ofertaId: evento.ofertaId,
-        gold: taxa,
-      });
-    }
+    registrarTaxa(carteira, mundo, evento, taxa);
 
     const oferta = {
       id: evento.ofertaId,
@@ -260,6 +304,85 @@ const PROCESSADORES = {
   "oferta-expirada"(carteira, evento) {
     encerrarOferta(carteira, evento, "expirada");
   },
+
+  "item-comprado"(carteira, evento) {
+    const mundo = mundoDe(carteira, evento.mundoId);
+    const item = itemDe(mundo, evento.itemId);
+
+    // O que saiu de gold: o preço dos itens + a taxa (se criou a oferta).
+    // A taxa entra no custo do item, para o lucro da venda ser o lucro real.
+    const taxa = taxaDoEvento(evento);
+    const goldGasto = evento.qtd * evento.preco + taxa;
+    const custoRc = parteDoCusto(mundo.custoRc, mundo.gold, goldGasto);
+
+    mundo.gold -= goldGasto;
+    mundo.custoRc -= custoRc;
+    registrarTaxa(carteira, mundo, evento, taxa);
+
+    item.qtd += evento.qtd;
+    item.custoGold += goldGasto;
+    item.custoRc += custoRc;
+
+    avisarSeGoldNegativo(carteira, evento.mundoId, evento.data);
+  },
+
+  "item-vendido"(carteira, evento) {
+    const mundo = mundoDe(carteira, evento.mundoId);
+    const item = itemDe(mundo, evento.itemId);
+
+    if (evento.qtd > item.qtd + FOLGA) {
+      carteira.alertas.push(
+        `Em ${evento.data} vendeu ${evento.qtd} de ${evento.itemId} em ${evento.mundoId}, mas o estoque era ${item.qtd}. Faltou lançar uma compra?`,
+      );
+    }
+
+    const taxa = taxaDoEvento(evento);
+    const goldRecebido = evento.qtd * evento.preco - taxa;
+    const { custoGold, custoRc } = baixarEstoque(item, evento.qtd);
+
+    // O gold volta para o mundo levando o custo em RC que o item carregava.
+    mundo.gold += goldRecebido;
+    mundo.custoRc += custoRc;
+    registrarTaxa(carteira, mundo, evento, taxa);
+
+    const lucroGold = goldRecebido - custoGold;
+    item.lucroGold += lucroGold;
+    carteira.realizadosItens.push({
+      data: evento.data,
+      mundoId: evento.mundoId,
+      itemId: evento.itemId,
+      qtd: evento.qtd,
+      gold: lucroGold,
+      recebidoGold: goldRecebido,
+      custoGold,
+    });
+
+    avisarSeGoldNegativo(carteira, evento.mundoId, evento.data);
+  },
+
+  "item-consumido"(carteira, evento) {
+    const mundo = mundoDe(carteira, evento.mundoId);
+    const item = itemDe(mundo, evento.itemId);
+
+    if (evento.qtd > item.qtd + FOLGA) {
+      carteira.alertas.push(
+        `Em ${evento.data} consumiu ${evento.qtd} de ${evento.itemId} em ${evento.mundoId}, mas o estoque era ${item.qtd}.`,
+      );
+    }
+
+    // Usar o item é uma RETIRADA (como tirar gold), não prejuízo de trade:
+    // sai do patrimônio e do capital pelo mesmo valor.
+    const { custoGold, custoRc } = baixarEstoque(item, evento.qtd);
+    carteira.capitalRc -= custoRc;
+    carteira.consumos.push({
+      data: evento.data,
+      mundoId: evento.mundoId,
+      itemId: evento.itemId,
+      qtd: evento.qtd,
+      custoGold,
+      custoRc,
+    });
+  },
 };
 
 // Soma, em cada mundo, o que está preso nas ofertas abertas dele.
@@ -303,33 +426,66 @@ export function calcularCarteira(eventos, { ate = null } = {}) {
 }
 
 // Coloca preço na carteira usando as cotações de agora.
-// "cotacoes" é { mundoId: { compra, venda } }.
-// O gold de cada mundo vira RC pela melhor VENDA daquele mundo (o preço
-// que você pagaria para recomprar agora). Sem cotação, vale o próprio custo.
-export function avaliarCarteira(carteira, cotacoes = {}) {
+//   cotacoes    = { mundoId: { compra, venda } }              (RC em gold)
+//   precosItens = { mundoId: { itemId: { compra, venda } } }  (item em gold)
+//
+// Sempre pelo preço em que você SAIRIA agora:
+//   • item vira gold pela melhor COMPRA do item (quanto pagam por ele);
+//   • gold vira RC pela melhor VENDA de RC do mundo (quanto você paga).
+// Sem preço, vale o próprio custo, e fica marcado para a tela avisar.
+export function avaliarCarteira(carteira, cotacoes = {}, precosItens = {}) {
   const mundos = {};
   let valorMundosRc = 0;
   let emAbertoRc = 0;
 
   for (const [mundoId, mundo] of Object.entries(carteira.mundos)) {
+    const vendaRc = cotacoes[mundoId]?.venda;
+
+    // ----- gold do mundo -----
     const goldTotal = mundo.gold + mundo.goldBloqueado;
     const custoTotal = mundo.custoRc + mundo.custoRcBloqueado;
-
-    const convertido = liquidarGold(goldTotal, cotacoes[mundoId]?.venda);
+    const convertido = liquidarGold(goldTotal, vendaRc);
     const semCotacao = convertido === null;
     const valorRc = semCotacao ? custoTotal : convertido;
 
+    // ----- itens do mundo -----
+    const itens = {};
+    let valorItensRc = 0;
+    let custoItensRc = 0;
+
+    for (const [itemId, item] of Object.entries(mundo.itens)) {
+      const precoItem = precosItens[mundoId]?.[itemId]?.compra;
+      const semPreco = !precoItem;
+      const valorGold = semPreco ? item.custoGold : item.qtd * precoItem;
+      const valorItemRc = semCotacao ? item.custoRc : liquidarGold(valorGold, vendaRc);
+
+      itens[itemId] = {
+        ...item,
+        custoMedioGold: item.qtd > 0 ? item.custoGold / item.qtd : null,
+        valorGold,
+        emAbertoGold: valorGold - item.custoGold,
+        valorRc: valorItemRc,
+        emAbertoRc: valorItemRc - item.custoRc,
+        semPreco,
+      };
+      valorItensRc += valorItemRc;
+      custoItensRc += item.custoRc;
+    }
+
     mundos[mundoId] = {
       ...mundo,
+      itens,
       goldTotal,
       custoTotal,
       precoBase: precoBase(goldTotal, custoTotal),
       valorRc,
       emAbertoRc: valorRc - custoTotal,
+      valorItensRc,
+      emAbertoItensRc: valorItensRc - custoItensRc,
       semCotacao,
     };
-    valorMundosRc += valorRc;
-    emAbertoRc += valorRc - custoTotal;
+    valorMundosRc += valorRc + valorItensRc;
+    emAbertoRc += valorRc - custoTotal + (valorItensRc - custoItensRc);
   }
 
   const patrimonioRc = carteira.rcLivre + carteira.rcBloqueado + valorMundosRc;

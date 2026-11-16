@@ -212,3 +212,106 @@ test("PONTA A PONTA: backup do app antigo → importador → ponte → motor", (
   const custoUsado = (1055 * 70) / 74.3;
   assert.ok(Math.abs(carteira.realizadoRc - (1000 - custoUsado)) < 1e-6);
 });
+
+// ===============================================================
+// ITENS
+// ===============================================================
+
+const ESTADO_COM_ITENS = {
+  movimentos: [
+    { id: "m1", data: "2026-11-01", turno: "manha", tipo: "gold-entrada", mundoId: "auroria", qtd: 10_000_000, valorRc: 1000, criadoEm: 100 },
+  ],
+  lancamentosItens: [
+    { id: "l2", data: "2026-11-05", turno: "tarde", mundoId: "auroria", itemId: "tibia-coin", tipo: "venda", qtd: 50, preco: 37000, teveTaxa: false, taxa: 0, criadoEm: 300 },
+    { id: "l1", data: "2026-11-02", turno: "manha", mundoId: "auroria", itemId: "tibia-coin", tipo: "compra", qtd: 100, preco: 35000, teveTaxa: false, taxa: 0, criadoEm: 200 },
+    { id: "l3", data: "2026-11-06", turno: "noite", mundoId: "auroria", itemId: "tibia-coin", tipo: "consumo", qtd: 5, preco: 0, teveTaxa: false, taxa: 0, criadoEm: 400 },
+  ],
+};
+
+test("item: compra, venda e consumo viram os 3 eventos de item, em ordem", () => {
+  const eventos = gerarLinhaDoTempo(ESTADO_COM_ITENS);
+  assert.deepEqual(tipos(eventos), [
+    "gold-entrada",
+    "item-comprado",
+    "item-vendido",
+    "item-consumido",
+  ]);
+});
+
+test("item: quantidade NÃO é dividida por 10 (item é unidade inteira)", () => {
+  const comprado = gerarLinhaDoTempo(ESTADO_COM_ITENS).find((e) => e.tipo === "item-comprado");
+  assert.equal(comprado.qtd, 100);
+  assert.equal(comprado.preco, 35000);
+  assert.equal(comprado.itemId, "tibia-coin");
+  assert.equal(comprado.mundoId, "auroria");
+});
+
+test("item: entra na mesma linha do tempo dos eventos de RC", () => {
+  const eventos = gerarLinhaDoTempo({
+    ...CICLO_COMPLETO,
+    lancamentosItens: [
+      { id: "l1", data: "2026-11-03", turno: "manha", mundoId: "auroria", itemId: "tibia-coin", tipo: "compra", qtd: 10, preco: 35000, teveTaxa: false, criadoEm: 250 },
+    ],
+  });
+  assert.deepEqual(tipos(eventos), [
+    "rc-entrada",
+    "gold-entrada",
+    "oferta-criada",    // dia 02
+    "item-comprado",    // dia 03 de manhã
+    "oferta-executada", // dia 03 à noite
+    "oferta-executada",
+    "oferta-cancelada",
+  ]);
+});
+
+test("item: tipo de lançamento desconhecido vira alerta no motor, não erro", () => {
+  const carteira = calcularCarteira(
+    gerarLinhaDoTempo({
+      lancamentosItens: [
+        { id: "l1", data: "2026-11-02", turno: "manha", mundoId: "auroria", itemId: "x", tipo: "troca", qtd: 1, preco: 1 },
+      ],
+    }),
+  );
+  assert.ok(carteira.alertas.some((a) => a.includes("desconhecido")));
+});
+
+test("PONTA A PONTA com itens: estado guardado → ponte → motor", () => {
+  const carteira = calcularCarteira(gerarLinhaDoTempo(ESTADO_COM_ITENS));
+  const item = carteira.mundos.auroria.itens["tibia-coin"];
+
+  assert.deepEqual(carteira.alertas, []);
+  assert.equal(item.qtd, 45); // 100 − 50 vendidos − 5 consumidos
+  assert.equal(item.lucroGold, 100_000);
+  assert.equal(carteira.mundos.auroria.gold, 10_000_000 - 3_500_000 + 1_850_000);
+});
+
+test("PONTA A PONTA com itens: backup do app antigo → importador → ponte → motor", () => {
+  const antigo = {
+    versao: 2,
+    config: { taxa: 0.05, rcEmReais: 0.1 },
+    mundos: [{ id: "auroria", nome: "Auroria", ativo: true }],
+    itens: [{ id: "rc", nome: "Rubini Coin" }, { id: "abc", nome: "Sanguine Blade" }],
+    cotacoes: [],
+    ofertas: [],
+    execucoes: [],
+    movimentos: [
+      { id: "m1", data: "2026-11-01", periodo: "manha", tipo: "gold-entrada", mundoId: "auroria", qtd: 10_000_000, valorRc: 140, criadoEm: 10 },
+    ],
+    lancamentosItens: [
+      // criou oferta de compra: o app antigo já guardava a taxa de 5%
+      { id: "l1", data: "2026-11-02", periodo: "noite", mundoId: "auroria", itemId: "abc", tipo: "compra", qtd: 2, preco: 2_300_000, teveTaxa: true, taxa: 230_000, criadoEm: 20 },
+      { id: "l2", data: "2026-11-09", periodo: "manha", mundoId: "auroria", itemId: "abc", tipo: "venda", qtd: 1, preco: 2_600_000, teveTaxa: false, taxa: 0, criadoEm: 30 },
+    ],
+    fechamentos: [],
+  };
+
+  const { estado } = converterLegado(antigo);
+  const carteira = calcularCarteira(gerarLinhaDoTempo(estado));
+  const item = carteira.mundos.auroria.itens.abc;
+
+  assert.deepEqual(carteira.alertas, []);
+  assert.equal(item.qtd, 1);
+  assert.equal(item.custoGold, 2_415_000);  // metade de 4,6kk + 230k de taxa
+  assert.equal(item.lucroGold, 185_000);    // 2,6kk − 2,415kk
+  assert.equal(carteira.mundos.auroria.taxasGold, 230_000);
+});

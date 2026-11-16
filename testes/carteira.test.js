@@ -321,3 +321,276 @@ test("FECHAMENTO: resultado = realizado + em aberto + ajustes, numa história co
   assert.deepEqual(c.alertas, []);
   perto(a.resultadoRc, a.realizadoRc + a.emAbertoRc + a.ajustesRc);
 });
+
+// ===============================================================
+// ITENS — comprar e vender item com o gold do mundo
+// ===============================================================
+
+const comprarItem = (data, mundoId, itemId, qtd, preco, teveTaxa = false) => ({
+  tipo: "item-comprado", data, mundoId, itemId, qtd, preco, teveTaxa,
+});
+
+const venderItem = (data, mundoId, itemId, qtd, preco, teveTaxa = false) => ({
+  tipo: "item-vendido", data, mundoId, itemId, qtd, preco, teveTaxa,
+});
+
+// Auroria começa com 10kk que custaram 100 RC.
+const GOLD_EM_AURORIA = [
+  { tipo: "gold-entrada", data: "2026-11-01", mundoId: "auroria", gold: 10_000_000, custoRc: 100 },
+];
+
+// Comprou 100 Tibia Coins a 35k cada, aceitando uma oferta (sem taxa).
+const COMPROU_100_TC = [
+  ...GOLD_EM_AURORIA,
+  comprarItem("2026-11-02", "auroria", "tibia-coin", 100, 35000),
+];
+
+test("item: comprar 100 a 35k tira 3,5kk do mundo e põe 100 no estoque", () => {
+  const c = calcularCarteira(COMPROU_100_TC);
+  const item = c.mundos.auroria.itens["tibia-coin"];
+
+  assert.equal(c.mundos.auroria.gold, 6_500_000);
+  assert.equal(item.qtd, 100);
+  assert.equal(item.custoGold, 3_500_000);
+  // o custo em RC acompanha o gold: 35% do gold saiu, 35% do custo foi junto
+  perto(item.custoRc, 35);
+  perto(c.mundos.auroria.custoRc, 65);
+  assert.deepEqual(c.alertas, []);
+});
+
+test("item: vender 50 a 37k dá lucro de 100k gold e atualiza gold e estoque", () => {
+  const c = calcularCarteira([
+    ...COMPROU_100_TC,
+    venderItem("2026-11-05", "auroria", "tibia-coin", 50, 37000),
+  ]);
+  const item = c.mundos.auroria.itens["tibia-coin"];
+
+  assert.equal(c.mundos.auroria.gold, 6_500_000 + 1_850_000);
+  assert.equal(item.qtd, 50);
+  assert.equal(item.custoGold, 1_750_000);
+  assert.equal(item.lucroGold, 100_000); // 50 × (37k − 35k)
+
+  assert.equal(c.realizadosItens.length, 1);
+  assert.equal(c.realizadosItens[0].gold, 100_000);
+  assert.equal(c.realizadosItens[0].recebidoGold, 1_850_000);
+  assert.equal(c.realizadosItens[0].custoGold, 1_750_000);
+
+  // metade do custo em RC do item voltou para o gold do mundo
+  perto(item.custoRc, 17.5);
+  perto(c.mundos.auroria.custoRc, 82.5);
+});
+
+test("item: lucro de item fica em gold; NÃO entra no realizado em RC", () => {
+  const c = calcularCarteira([
+    ...COMPROU_100_TC,
+    venderItem("2026-11-05", "auroria", "tibia-coin", 50, 37000),
+  ]);
+  assert.equal(c.realizadoRc, 0);
+});
+
+test("item: comprar CRIANDO oferta paga 5%, e a taxa entra no custo do item", () => {
+  const c = calcularCarteira([
+    ...GOLD_EM_AURORIA,
+    comprarItem("2026-11-02", "auroria", "tibia-coin", 100, 35000, true),
+  ]);
+  const item = c.mundos.auroria.itens["tibia-coin"];
+
+  assert.equal(c.mundos.auroria.taxasGold, 175_000);
+  assert.equal(item.custoGold, 3_675_000);
+  assert.equal(c.mundos.auroria.gold, 10_000_000 - 3_675_000);
+});
+
+test("item: vender CRIANDO oferta desconta a taxa do lucro", () => {
+  const c = calcularCarteira([
+    ...COMPROU_100_TC,
+    venderItem("2026-11-05", "auroria", "tibia-coin", 50, 37000, true),
+  ]);
+  // recebe 1,85kk − 92,5k de taxa; o custo das 50 era 1,75kk
+  assert.equal(c.realizadosItens[0].gold, 7_500);
+  assert.equal(c.mundos.auroria.taxasGold, 92_500);
+});
+
+test("item: usa a taxa do lançamento quando ela vem informada", () => {
+  const c = calcularCarteira([
+    ...GOLD_EM_AURORIA,
+    { ...comprarItem("2026-11-02", "auroria", "tibia-coin", 100, 35000, true), taxa: 175_001 },
+  ]);
+  assert.equal(c.mundos.auroria.taxasGold, 175_001);
+});
+
+test("item: vender abaixo do custo registra prejuízo", () => {
+  const c = calcularCarteira([
+    ...COMPROU_100_TC,
+    venderItem("2026-11-05", "auroria", "tibia-coin", 100, 33000),
+  ]);
+  assert.equal(c.realizadosItens[0].gold, -200_000);
+});
+
+test("item: duas compras a preços diferentes formam custo médio", () => {
+  const c = calcularCarteira([
+    ...COMPROU_100_TC,                                              // 100 a 35k
+    comprarItem("2026-11-03", "auroria", "tibia-coin", 100, 37000), // 100 a 37k
+    venderItem("2026-11-06", "auroria", "tibia-coin", 100, 38000),  // custo médio 36k
+  ]);
+  const item = c.mundos.auroria.itens["tibia-coin"];
+  assert.equal(c.realizadosItens[0].gold, 200_000); // 100 × (38k − 36k)
+  assert.equal(item.qtd, 100);
+  assert.equal(item.custoGold, 3_600_000);
+});
+
+test("item: vender tudo zera estoque e custo, sem sobra de arredondamento", () => {
+  const c = calcularCarteira([
+    ...COMPROU_100_TC,
+    venderItem("2026-11-05", "auroria", "tibia-coin", 30, 37000),
+    venderItem("2026-11-06", "auroria", "tibia-coin", 70, 37000),
+  ]);
+  const item = c.mundos.auroria.itens["tibia-coin"];
+  assert.equal(item.qtd, 0);
+  assert.equal(item.custoGold, 0);
+  assert.equal(item.custoRc, 0);
+  perto(c.mundos.auroria.custoRc, 100); // todo o custo em RC voltou para o gold
+});
+
+test("item: estoque é por mundo, nunca se mistura", () => {
+  const c = calcularCarteira([
+    ...COMPROU_100_TC,
+    { tipo: "gold-entrada", data: "2026-11-01", mundoId: "bellum", gold: 5_000_000, custoRc: 60 },
+    comprarItem("2026-11-02", "bellum", "tibia-coin", 20, 40000),
+  ]);
+  assert.equal(c.mundos.auroria.itens["tibia-coin"].qtd, 100);
+  assert.equal(c.mundos.bellum.itens["tibia-coin"].qtd, 20);
+  assert.equal(c.mundos.bellum.gold, 4_200_000);
+});
+
+test("item: alerta ao vender mais do que tem (o gold entra mesmo assim)", () => {
+  const c = calcularCarteira([
+    ...COMPROU_100_TC,
+    venderItem("2026-11-05", "auroria", "tibia-coin", 120, 37000),
+  ]);
+  assert.ok(c.alertas.some((a) => a.includes("estoque era 100")));
+  assert.equal(c.mundos.auroria.itens["tibia-coin"].qtd, 0);
+  assert.equal(c.mundos.auroria.gold, 6_500_000 + 120 * 37000);
+});
+
+test("item: alerta ao comprar sem ter gold no mundo", () => {
+  const c = calcularCarteira([comprarItem("2026-11-02", "auroria", "tibia-coin", 100, 35000)]);
+  assert.ok(c.alertas.some((a) => a.includes("gold de auroria ficou negativo")));
+});
+
+test("item: consumir é retirada — sai do estoque e do capital, sem virar prejuízo", () => {
+  const antes = avaliarCarteira(calcularCarteira(COMPROU_100_TC));
+  const c = calcularCarteira([
+    ...COMPROU_100_TC,
+    { tipo: "item-consumido", data: "2026-11-04", mundoId: "auroria", itemId: "tibia-coin", qtd: 40 },
+  ]);
+  const depois = avaliarCarteira(c);
+
+  assert.equal(c.mundos.auroria.itens["tibia-coin"].qtd, 60);
+  perto(c.capitalRc, 100 - 14); // 40% do custo do item (35 RC) saiu do capital
+  perto(depois.resultadoRc, antes.resultadoRc);
+  assert.equal(c.consumos.length, 1);
+});
+
+// ---------------------------------------------------------------
+test("avaliar item: vale a melhor COMPRA do item, convertida pela VENDA de RC", () => {
+  const c = calcularCarteira(COMPROU_100_TC);
+  const a = avaliarCarteira(
+    c,
+    { auroria: { compra: 68000, venda: 70000 } },
+    { auroria: { "tibia-coin": { compra: 36000, venda: 38000 } } },
+  );
+  const item = a.mundos.auroria.itens["tibia-coin"];
+
+  assert.equal(item.custoMedioGold, 35000);
+  assert.equal(item.valorGold, 3_600_000);
+  assert.equal(item.emAbertoGold, 100_000);
+  perto(item.valorRc, 3_600_000 / 70000);
+  perto(item.emAbertoRc, 3_600_000 / 70000 - 35);
+  // patrimônio = gold do mundo + itens, tudo pela cotação de Auroria
+  perto(a.patrimonioRc, (6_500_000 + 3_600_000) / 70000);
+});
+
+test("avaliar item: sem preço do item, ele vale o que custou (e fica marcado)", () => {
+  const a = avaliarCarteira(
+    calcularCarteira(COMPROU_100_TC),
+    { auroria: { compra: 68000, venda: 70000 } },
+  );
+  const item = a.mundos.auroria.itens["tibia-coin"];
+  assert.equal(item.semPreco, true);
+  assert.equal(item.valorGold, 3_500_000);
+  assert.equal(item.emAbertoGold, 0);
+});
+
+test("avaliar item: sem cotação de RC no mundo, vale o próprio custo em RC", () => {
+  const a = avaliarCarteira(calcularCarteira(COMPROU_100_TC));
+  perto(a.mundos.auroria.itens["tibia-coin"].valorRc, 35);
+  perto(a.patrimonioRc, 100);
+});
+
+test("item: o lucro só vira realizado em RC na recompra, e não conta duas vezes", () => {
+  const semItem = [
+    entradaRc("2026-11-01", 1000),
+    { tipo: "gold-entrada", data: "2026-11-01", mundoId: "auroria", gold: 4_000_000, custoRc: 55 },
+    criarVenda("2026-11-02", "v1", "auroria", 1000, 74000),
+    executar("2026-11-03", "v1", 1000),
+  ];
+  const recompra = [
+    criarCompra("2026-11-08", "c1", "auroria", 1000, 70000, false),
+    executar("2026-11-08", "c1", 1000),
+  ];
+  const tradeDeItem = [
+    comprarItem("2026-11-04", "auroria", "tibia-coin", 100, 35000),
+    venderItem("2026-11-06", "auroria", "tibia-coin", 100, 37000), // +200k gold
+  ];
+
+  const antesDaRecompra = calcularCarteira([...semItem, ...tradeDeItem]);
+  assert.equal(antesDaRecompra.realizadoRc, 0);
+
+  const comItem = calcularCarteira([...semItem, ...tradeDeItem, ...recompra]);
+  const sem = calcularCarteira([...semItem, ...recompra]);
+  // o mesmo gold comprou os mesmos 1.000 RC, mas saiu de um monte maior:
+  // o custo usado foi menor, então o realizado em RC foi maior
+  assert.ok(comItem.realizadoRc > sem.realizadoRc);
+
+  const a = avaliarCarteira(comItem, { auroria: { compra: 69000, venda: 70500 } });
+  perto(a.resultadoRc, a.realizadoRc + a.emAbertoRc + a.ajustesRc);
+});
+
+test("FECHAMENTO com itens: resultado = realizado + em aberto + ajustes", () => {
+  const c = calcularCarteira([
+    entradaRc("2026-11-01", 3000),
+    { tipo: "gold-entrada", data: "2026-11-01", mundoId: "auroria", gold: 6_000_000, custoRc: 80 },
+    { tipo: "gold-entrada", data: "2026-11-01", mundoId: "bellum", gold: 7_000_000, custoRc: 90 },
+    criarVenda("2026-11-02", "v1", "auroria", 1000, 74000),
+    executar("2026-11-03", "v1", 1000),
+    comprarItem("2026-11-03", "auroria", "sanguine-blade", 3, 2_300_000, true),
+    comprarItem("2026-11-03", "auroria", "tibia-coin", 200, 35000),
+    criarVenda("2026-11-03", "v2", "bellum", 1500, 80000),
+    executar("2026-11-04", "v2", 900),
+    comprarItem("2026-11-04", "bellum", "tibia-coin", 50, 41000, true),
+    venderItem("2026-11-05", "auroria", "sanguine-blade", 1, 2_600_000, true),
+    venderItem("2026-11-05", "auroria", "tibia-coin", 120, 33500),
+    { tipo: "item-consumido", data: "2026-11-05", mundoId: "auroria", itemId: "tibia-coin", qtd: 10 },
+    cancelar("2026-11-05", "v2"),
+    criarCompra("2026-11-06", "c1", "auroria", 500, 69000, false),
+    executar("2026-11-06", "c1", 500),
+    { tipo: "ajuste-rc", data: "2026-11-09", qtd: -2 },
+    { tipo: "ajuste-gold", data: "2026-11-09", mundoId: "bellum", gold: 12_345 },
+  ]);
+  const a = avaliarCarteira(
+    c,
+    { auroria: { compra: 69500, venda: 71000 }, bellum: { compra: 76000, venda: 78500 } },
+    {
+      auroria: { "sanguine-blade": { compra: 2_450_000, venda: 2_700_000 } },
+      bellum: { "tibia-coin": { compra: 39000, venda: 42000 } },
+    },
+  );
+
+  assert.deepEqual(c.alertas, []);
+  perto(a.resultadoRc, a.realizadoRc + a.emAbertoRc + a.ajustesRc);
+});
+
+test("carteira com itens também pode ser salva em JSON", () => {
+  const c = calcularCarteira(COMPROU_100_TC);
+  assert.doesNotThrow(() => JSON.stringify(avaliarCarteira(c)));
+});

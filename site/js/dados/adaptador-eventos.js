@@ -8,14 +8,14 @@
 //   • Não lê nem grava nada: recebe o estado e devolve a lista de eventos.
 //   • É o único lugar onde décimos viram RC natural na ida para o motor.
 //   • Não altera o estado que recebe.
-//
-// AINDA NÃO ENTRA AQUI: lançamentos de itens (o motor ainda não trata itens).
+//   • Quantidade de ITEM não é convertida: item é contado em unidades inteiras.
+
+import { ORDEM_TURNO } from "../nucleo/tempo.js";
 
 // ---------- Conversão de unidade ----------
 const decimosParaRc = (decimos) => (decimos ?? 0) / 10;
 
 // ---------- Ordem ----------
-const ORDEM_TURNO = { manha: 0, tarde: 1, noite: 2 };
 
 // Desempate quando dois eventos têm exatamente o mesmo momento:
 // o que traz saldo vem antes do que gasta.
@@ -25,11 +25,21 @@ const PRIORIDADE = {
   "ajuste-rc": 1,
   "ajuste-gold": 1,
   "oferta-criada": 2,
+  "item-comprado": 2,
   "oferta-executada": 3,
+  "item-vendido": 3,
   "oferta-cancelada": 4,
   "oferta-expirada": 4,
   "rc-saida": 5,
   "gold-saida": 5,
+  "item-consumido": 5,
+};
+
+// Como cada lançamento de item guardado se chama na linha do tempo.
+const TIPO_DO_LANCAMENTO_ITEM = {
+  compra: "item-comprado",
+  venda: "item-vendido",
+  consumo: "item-consumido",
 };
 
 // Movimentos cuja quantidade é RC (nos outros a quantidade é gold).
@@ -118,6 +128,24 @@ function eventoDaExecucao(x) {
   };
 }
 
+// Lançamento de item (compra, venda ou consumo) vira 1 evento.
+// Tipo que a ponte não conhece passa adiante, e o motor avisa com um alerta.
+function eventoDoLancamentoItem(l) {
+  return {
+    tipo: TIPO_DO_LANCAMENTO_ITEM[l.tipo] ?? `item-${l.tipo}`,
+    data: l.data,
+    turno: l.turno,
+    criadoEm: l.criadoEm ?? null,
+    origemId: l.id,
+    mundoId: l.mundoId,
+    itemId: l.itemId,
+    qtd: l.qtd,     // unidades do item
+    preco: l.preco, // gold por unidade
+    teveTaxa: Boolean(l.teveTaxa),
+    taxa: l.taxa ?? null,
+  };
+}
+
 // ---------- Função principal ----------
 
 // Recebe o estado guardado e devolve a linha do tempo, já em ordem,
@@ -127,6 +155,7 @@ export function gerarLinhaDoTempo(estado) {
     ...(estado?.movimentos ?? []).map(eventoDoMovimento),
     ...(estado?.ofertas ?? []).flatMap(eventosDaOferta),
     ...(estado?.execucoes ?? []).map(eventoDaExecucao),
+    ...(estado?.lancamentosItens ?? []).map(eventoDoLancamentoItem),
   ];
   return eventos.sort(compararEventos);
 }
